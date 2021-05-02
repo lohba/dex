@@ -10,10 +10,10 @@ contract ("Dex", accounts => {
         await truffleAssert.reverts(
             dex.createLimitOrder(0, web3.utils.fromUtf8("LINK"), 10, 1)
         )
-        // dex.depositEth({value: 10})
-        // await truffleAssert.passes(
-        //     dex.createLimitOrder(0, web3.utils.fromUtf8("LINK"), 10, 1)
-        // )
+        dex.depositEth({value: 10})
+        await truffleAssert.passes(
+            dex.createLimitOrder(0, web3.utils.fromUtf8("LINK"), 10, 1)
+        )
     })
 // The user must have enough tokens deposited such that token balance >= sell order amount
     it ("should throw an error if token balance is too low when creating SELL limit order", async () => {
