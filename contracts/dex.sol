@@ -18,6 +18,7 @@ contract Dex is Wallet {
         bytes32 ticker;
         uint amount;
         uint price;
+        uint filled;
     }
 
     uint public nextOrderId = 0;
@@ -66,7 +67,55 @@ contract Dex is Wallet {
         nextOrderId++;
     }
     function createMarketOrder(Side side, bytes32 ticker, uint amount) public {
-        
+        if(side == Side.SELL){
+            require(balances[msg.sender][ticker] >= amount, "Insufficient balance");
+        }
+
+        uint orderBookSide;
+        if(side == Side.BUY){
+            orderBookSide = 1;
+        }
+        else {
+            orderBookSide = 0
+        }
+        Order[] storage orders = orderBook[ticker][orderBookSide];
+
+        uint totalFilled;
+        //Calculate how much we can fill from order[i]
+        for(uint256 i = 0; i < orders.length && totalFilled < amount; i++){
+            uint leftToFill = amount.sub(totalFilled) // amount - totalFilled
+            uint availableToFill = orders[i].amount.sub(orders[i].filled); //order.amount - order.filled
+            uint filled = 0;
+            if(availableToFill > leftToFill){
+                filled = leftToFill; //Fill the entire market order
+            }
+            else {
+                filled = availableToFill; //Fill as much as is available in order[i]
+            }
+            totalFilled = totalFilled.add(filled);
+            orders[i].filled = orders[i].filled.add(filled);
+            uint cost = filled.mul(orders[i].price);
+
+            // Execute the trade & shift balances between buyer/seller
+            if(side == Side.BUY){
+                //Verify that the buyer has enough ETH to cover the purchase(require)
+                require(balances[msg.sender]["ETH"] >= cost);
+                //msg.sender is the buyer
+                //Transfer ETH to Buyer
+                balances[msg.sender][ticker] = balances[msg.sender][ticker].add(filled);
+                balances[msg.sender]["ETH"] = balances[msg.sender]["ETH"].sub(cost)
+                //Transfer Tokens from Seller 
+                balances[orders[i].trader][ticker] = balances[orders[i].trader][ticker].sub(filled);
+                balances[orders[i].trader]["ETH"] = balances[orders[i].trader]["ETH"].add(cost);
+            }
+            else if(side == Side.SELL){
+                //Msg.sender is the seller
+                //Transfer ETH from Buyer to Seller
+                //Transfer tokens from Seller to Buyer
+            }
+
+        }
+        // Loop through the orderbook and remove 100% filled orders
     }
 
 }

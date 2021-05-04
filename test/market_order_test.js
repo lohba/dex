@@ -36,7 +36,8 @@ contract("Dex", accounts => {
 //Market orders should be filled until the order book is empty or the market order is 100% filled
     it("Market orders should not fill more limit orders than the market order amount", async() => {
         let dex = await Dex.deployed()
-        await dex.depositEth({value: 10000});
+        let link = await Link.deployed()
+        //await dex.depositEth({value: 10000});
 
         let orderbook = await dex.getOrderBook(web3.utils.fromUtf8("LINK"), 1); //Get sell side orderbook
         assert(orderbook.length == 0, "Sell side Orderbook should be empty at start of test");
@@ -54,9 +55,9 @@ contract("Dex", accounts => {
         await link.approve(dex.address, 50, {from: accounts[3]});
 
         //Deposit LINK into DEX for accounts 1, 2, 3
-        await link.approve(dex.address, 50, {from: accounts[1]});
-        await link.approve(dex.address, 50, {from: accounts[2]});
-        await link.approve(dex.address, 50, {from: accounts[3]});
+        await dex.approve(dex.address, 50, {from: accounts[1]});
+        await dex.approve(dex.address, 50, {from: accounts[2]});
+        await dex.approve(dex.address, 50, {from: accounts[3]});
 
         //Fill up the sell order book
         await dex.createLimitOrder(1, web3.utils.fromUtf8("LINK"), 5, 300, {from: accounts[1]})
@@ -66,7 +67,7 @@ contract("Dex", accounts => {
         //Create market order that should fill 2/3 orders in the book
         await dex.createMarketOrder(0, web3.utils.fromUtf8("LINK"), 10);
 
-        order = await dex.getOrderBook(web3.utils.fromUtf8("LINK"), 1) // Get sell side orderbook
+        orderbook = await dex.getOrderBook(web3.utils.fromUtf8("LINK"), 1) // Get sell side orderbook
         assert(orderbook.length == 1, "Sell side Orderbook should only have 1 order left");
         assert(orderbook[0].filled == 0, "Sell side order should have 0 filled");
 })
@@ -95,8 +96,8 @@ it("Market orders should be filled until the order book is empty", async() => {
     assert.equal(balanceBefore + 15, balanceAfter)
 
 })
-//The ETH balance of the buyer should decreasee with the filled amount
-it("The ETH balance of the buyer should decreasee with the filled amount", async() => {
+//The ETH balance of the buyer should decrease with the filled amount
+it("The ETH balance of the buyer should decrease with the filled amount", async() => {
     let dex = await Dex.deployed()
     let link = await Link.deployed()
 
@@ -118,7 +119,7 @@ it("The token balances of the limit order sellers soud decrease witht he filled 
     let link = await Link.deployed()
 
     let orderbook = await dex.getOrderBook(web3.utils.fromUtf8('LINK'), 1);
-    assert(orrderbook.length == 0, "Sell side Orderbook should be empty at start of test");
+    assert(orderbook.length == 0, "Sell side Orderbook should be empty at start of test");
 
     //Seller Account[1] already has approved and deposited Link
     //Seller Account[2] deposits link
@@ -145,7 +146,7 @@ it("Filled limi orders should be removed from the orderbook", async() => {
     let dex = await Dex.deployed()
 
     let orderbook = await dex.getOrderBook(web3.utils.fromUtf8('LINK'), 1);
-    assert(orrderbook.length == 0, "Sell side Orderbook should be empty at start of test");
+    assert(orderbook.length == 0, "Sell side Orderbook should be empty at start of test");
 
     await dex.createLimitOrder(1, web3.utils.fromUtf8("LINK"), 1, 300, {from:accounts[1]})
     await dex.createMarketOrder(0, web3.utils.fromUtf8("LINK"), 1);
@@ -158,7 +159,7 @@ it("Limit orders filled property should be set correctly after a trade", async()
     let dex = await Dex.deployed()
 
     let orderbook = await dex.getOrderBook(web3.utils.fromUtf8('LINK'), 1);
-    assert(orrderbook.length == 0, "Sell side Orderbook should be empty at start of test");
+    assert(orderbook.length == 0, "Sell side Orderbook should be empty at start of test");
 
     await dex.createLimitOrder(1, web3.utils.fromUtf8("LINK"), 5, 300, {from:accounts[1]})
     await dex.createMarketOrder(0, web3.utils.fromUtf8("LINK"), 2);
