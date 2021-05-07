@@ -38,7 +38,7 @@ contract Dex is Wallet {
         }
         Order[] storage orders = orderBook[ticker][uint(side)];
         orders.push(
-            Order(nextOrderId, msg.sender, side, ticker, amount, price)
+            Order(nextOrderId, msg.sender, side, ticker, amount, price, 0)
         );
         //Bubble Sort
         uint i = orders.length > 0 ? orders.length - 1: 0;
@@ -76,14 +76,14 @@ contract Dex is Wallet {
             orderBookSide = 1;
         }
         else {
-            orderBookSide = 0
+            orderBookSide = 0;
         }
         Order[] storage orders = orderBook[ticker][orderBookSide];
 
         uint totalFilled;
         //Calculate how much we can fill from order[i]
         for(uint256 i = 0; i < orders.length && totalFilled < amount; i++){
-            uint leftToFill = amount.sub(totalFilled) // amount - totalFilled
+            uint leftToFill = amount.sub(totalFilled); // amount - totalFilled
             uint availableToFill = orders[i].amount.sub(orders[i].filled); //order.amount - order.filled
             uint filled = 0;
             if(availableToFill > leftToFill){
@@ -100,22 +100,33 @@ contract Dex is Wallet {
             if(side == Side.BUY){
                 //Verify that the buyer has enough ETH to cover the purchase(require)
                 require(balances[msg.sender]["ETH"] >= cost);
-                //msg.sender is the buyer
                 //Transfer ETH to Buyer
                 balances[msg.sender][ticker] = balances[msg.sender][ticker].add(filled);
-                balances[msg.sender]["ETH"] = balances[msg.sender]["ETH"].sub(cost)
+                balances[msg.sender]["ETH"] = balances[msg.sender]["ETH"].sub(cost);
                 //Transfer Tokens from Seller 
                 balances[orders[i].trader][ticker] = balances[orders[i].trader][ticker].sub(filled);
                 balances[orders[i].trader]["ETH"] = balances[orders[i].trader]["ETH"].add(cost);
             }
             else if(side == Side.SELL){
-                //Msg.sender is the seller
+                //Transfer ETH to Buyer
+                balances[msg.sender][ticker] = balances[msg.sender][ticker].sub(filled);
+                balances[msg.sender]["ETH"] = balances[msg.sender]["ETH"].add(cost);
                 //Transfer ETH from Buyer to Seller
+                balances[orders[i].trader][ticker] = balances[orders[i].trader][ticker].add(filled);
+                balances[orders[i].trader]["ETH"] = balances[orders[i].trader]["ETH"].sub(cost);               
                 //Transfer tokens from Seller to Buyer
             }
 
         }
-        // Loop through the orderbook and remove 100% filled orders
+        // Remove 100% filled orders from the orderbook
+        while(orders.length > 0 && orders[0].filled == orders[0].amount){
+            //Remove the top element in the orders array by overwriting every element
+            //with the next element in the order list
+            for(uint256 i = 0; i < orders.length -1; i++){
+                orders[i] = orders[i +1];
+            }
+            orders.pop();
+        }
     }
 
 }
